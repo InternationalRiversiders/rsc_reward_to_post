@@ -30,11 +30,19 @@ export default class RewardModal extends Component {
     if (!this.error) {
       return null;
     }
-    const msg = i18n(themePrefix(`reward_modal.error.${this.error}`));
-    // 刻意设计：有对应翻译就用翻译，没有则原样显示错误码字符串。
+    // 拼接完整 i18n key，形如 "theme_translations.N.reward_modal.error.XXX"
+    const key = themePrefix(`reward_modal.error.${this.error}`);
+    const msg = i18n(key);
+    // 刻意设计：已知错误码走 i18n 翻译；未知错误码原样显示字符串。
     // 这样后端新增错误码时，前端即使未及时更新 locale 文件，用户也能看到有意义的
     // 错误标识（而非模糊的"服务端异常"），便于用户反馈问题时提供准确信息。
-    return msg ? msg : this.error;
+    //
+    // Discourse i18n 缺失翻译时返回 "[locale.theme_translations.N...]" 格式的
+    // 占位符（truthy），而真实翻译不会是这种格式。通过首字符 "[" 来区分二者。
+    if (msg && !msg.startsWith("[")) {
+      return msg;
+    }
+    return this.error;
   }
 
   @action
@@ -79,7 +87,26 @@ export default class RewardModal extends Component {
       });
       this.args.closeModal();
     } catch (err) {
-      this.error = err.rscErrorCode || err.jqXHR?.responseJSON?.error || "INTERNAL_SERVER_ERROR";
+      const resp = err.jqXHR?.responseJSON;
+
+      // 按优先级尝试多种常见的错误响应格式，提取字符串类型的错误信息
+      let rawError = err.rscErrorCode;
+
+      if (!rawError && resp) {
+        rawError =
+          // 1. error 本身是字符串："error": "CODE"
+          (typeof resp.error === "string" && resp.error) ||
+          // 2. 嵌套的 code 优先于 message，便于走 i18n 或原样反馈
+          (typeof resp.error?.code === "string" && resp.error.code) ||
+          // 3. 嵌套的 message
+          (typeof resp.error?.message === "string" && resp.error.message) ||
+          // 4. Rails 默认复数格式："errors": ["msg1", ...]
+          (Array.isArray(resp.errors) && typeof resp.errors[0] === "string" && resp.errors[0]) ||
+          // 5. 顶层 message 字段
+          (typeof resp.message === "string" && resp.message);
+      }
+
+      this.error = typeof rawError === "string" ? rawError : "INTERNAL_SERVER_ERROR";
     } finally {
       this.loading = false;
     }

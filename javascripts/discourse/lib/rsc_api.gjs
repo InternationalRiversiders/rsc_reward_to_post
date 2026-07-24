@@ -210,32 +210,25 @@ export function clearRewardsCache() {
  * 为帖子打赏（需要认证）。
  *
  * @param {object} params
- * @param {number} params.toDiscourseUserId
- * @param {string} params.toUsername
  * @param {string} params.amount
  * @param {number} params.topicId
  * @param {number} params.postId
- * @param {number} params.postNumber
+ * @param {string} params.clientRequestId
  * @returns {Promise<object>} 新创建的 Tip
  */
 export async function rewardPost({
-  toDiscourseUserId,
-  toUsername,
   amount,
   topicId,
   postId,
-  postNumber,
+  clientRequestId,
 }) {
   const result = await authRequest(`${API_PREFIX}/wallet/post-tips`, {
     type: "POST",
     contentType: "application/json",
     data: JSON.stringify({
-      toDiscourseUserId,
-      toUsername,
       amount,
-      topicId,
       postId,
-      postNumber,
+      clientRequestId,
     }),
   });
 

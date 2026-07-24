@@ -14,6 +14,7 @@ export default class RewardModal extends Component {
 
   constructor() {
     super(...arguments);
+    this.clientRequestId = createClientRequestId();
     document.body.classList.add("reward-modal-open");
   }
 
@@ -78,12 +79,10 @@ export default class RewardModal extends Component {
 
     try {
       await this.args.model.rewardPost({
-        toDiscourseUserId: post.user_id,
-        toUsername: post.username,
         amount: this.amount,
         topicId: post.topic_id,
         postId: post.id,
-        postNumber: post.post_number,
+        clientRequestId: this.clientRequestId,
       });
       this.args.closeModal();
     } catch (err) {
@@ -156,4 +155,13 @@ export default class RewardModal extends Component {
       </:footer>
     </DModal>
   </template>
+}
+
+function createClientRequestId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `tip-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 14)}`;
 }

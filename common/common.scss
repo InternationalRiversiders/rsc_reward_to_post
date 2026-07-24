@@ -42,6 +42,11 @@
     flex-shrink: 0;
   }
 
+  &__count {
+    color: var(--primary-medium);
+    font-size: var(--font-down-2);
+  }
+
   &__list {
     &--scrollable {
       overflow-y: auto;
@@ -85,5 +90,4 @@ body.reward-modal-open div[data-identifier="usercard"] {
     margin-top: 8px;
   }
 }
-
 

@@ -28,6 +28,9 @@ const TipRow = <template>
           class="reward-post-info__user"
           title={{@formattedTime}}
         >{{@username}}</a>
+        {{#if @showCount}}
+          <span class="reward-post-info__count">×{{@tipCount}}</span>
+        {{/if}}
       {{/if}}
     </span>
     <span class="reward-post-info__amount">{{@amount}} {{@unit}}</span>
@@ -44,7 +47,7 @@ export default class RewardPostInfo extends Component {
   }
 
   get showTotal() {
-    return this.tips.length >= 3;
+    return this.tips.reduce((sum, tip) => sum + (tip.tipCount || 1), 0) >= 3;
   }
 
   get totalRsc() {
@@ -70,6 +73,7 @@ export default class RewardPostInfo extends Component {
   get formattedTips() {
     return this.tips.map((tip) => ({
       ...tip,
+      showCount: (tip.tipCount || 1) > 1,
       formattedTime: moment(tip.createdAt).format("YYYY-MM-DD HH:mm:ss"),
     }));
   }
@@ -127,6 +131,8 @@ export default class RewardPostInfo extends Component {
               @amount={{tip.amountRsc}}
               @unit={{this.rscUnit}}
               @formattedTime={{tip.formattedTime}}
+              @showCount={{tip.showCount}}
+              @tipCount={{tip.tipCount}}
             />
           {{/each}}
         </div>

@@ -3,6 +3,7 @@ import { service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
 import { i18n } from "discourse-i18n";
 import { themePrefix } from "virtual:theme";
+import moment from "moment";
 import { fetchPostTips } from "../lib/rsc_api";
 
 const RewardIcon = <template>
@@ -18,7 +19,7 @@ const TipRow = <template>
   <div class="reward-post-info__item {{if @total "reward-post-info__item--total"}}">
     <span class="reward-post-info__left">
       <RewardIcon />
-      <span class="reward-post-info__user">{{@username}}</span>
+      <span class="reward-post-info__user" title={{@formattedTime}}>{{@username}}</span>
     </span>
     <span class="reward-post-info__amount">{{@amount}} {{@unit}}</span>
   </div>
@@ -49,6 +50,13 @@ export default class RewardPostInfo extends Component {
     return i18n(themePrefix("reward_post_info.rsc_unit"));
   }
 
+  get formattedTips() {
+    return this.tips.map((tip) => ({
+      ...tip,
+      formattedTime: moment(tip.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+    }));
+  }
+
   constructor() {
     super(...arguments);
     if (this.isTopicPage) {
@@ -76,11 +84,12 @@ export default class RewardPostInfo extends Component {
             @unit={{this.rscUnit}}
           />
         {{/if}}
-        {{#each this.tips as |tip|}}
+        {{#each this.formattedTips as |tip|}}
           <TipRow
             @username={{tip.fromUsername}}
             @amount={{tip.amountRsc}}
             @unit={{this.rscUnit}}
+            @formattedTime={{tip.formattedTime}}
           />
         {{/each}}
       </div>

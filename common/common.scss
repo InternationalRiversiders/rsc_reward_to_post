@@ -1,0 +1,37 @@
+.reward-post-info {
+  padding: 4px 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--primary-low);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+
+    &--total {
+      color: #d4a017;
+    }
+  }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__icon {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+  }
+
+  &__user {
+    font-weight: 500;
+  }
+
+  &__amount {
+    flex-shrink: 0;
+  }
+}

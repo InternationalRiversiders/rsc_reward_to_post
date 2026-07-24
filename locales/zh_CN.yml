@@ -16,3 +16,5 @@ zh_CN:
       RSC_API_PATH_NOT_FOUND: "API 路径不存在"
       RSC_TIMEOUT: "请求超时"
       RSC_NETWORK_ERROR: "网络连接失败"
+      SELF_TIP_NOT_ALLOWED: "不能给自己打赏"
+      INSUFFICIENT_RSC_BALANCE: "RSC 余额不足"

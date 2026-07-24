@@ -19,7 +19,16 @@ const TipRow = <template>
   <div class="reward-post-info__item {{if @total "reward-post-info__item--total"}}">
     <span class="reward-post-info__left">
       <RewardIcon />
-      <span class="reward-post-info__user" title={{@formattedTime}}>{{@username}}</span>
+      {{#if @total}}
+        <span class="reward-post-info__user">{{@username}}</span>
+      {{else}}
+        <a
+          href="/u/{{@username}}"
+          data-user-card={{@username}}
+          class="reward-post-info__user"
+          title={{@formattedTime}}
+        >{{@username}}</a>
+      {{/if}}
     </span>
     <span class="reward-post-info__amount">{{@amount}} {{@unit}}</span>
   </div>

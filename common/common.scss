@@ -41,6 +41,13 @@
   &__amount {
     flex-shrink: 0;
   }
+
+  &__list {
+    &--scrollable {
+      overflow-y: auto;
+      max-height: 10lh;
+    }
+  }
 }
 
 // 打赏弹窗打开时，提权用户卡片至弹窗（1300）之上

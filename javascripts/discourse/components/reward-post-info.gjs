@@ -63,6 +63,10 @@ export default class RewardPostInfo extends Component {
     return i18n(themePrefix("reward_post_info.rsc_unit"));
   }
 
+  get scrollable() {
+    return this.tips.length > 10;
+  }
+
   get formattedTips() {
     return this.tips.map((tip) => ({
       ...tip,
@@ -114,14 +118,16 @@ export default class RewardPostInfo extends Component {
             @unit={{this.rscUnit}}
           />
         {{/if}}
-        {{#each this.formattedTips as |tip|}}
-          <TipRow
-            @username={{tip.fromUsername}}
-            @amount={{tip.amountRsc}}
-            @unit={{this.rscUnit}}
-            @formattedTime={{tip.formattedTime}}
-          />
-        {{/each}}
+        <div class="reward-post-info__list {{if this.scrollable "reward-post-info__list--scrollable"}}">
+          {{#each this.formattedTips as |tip|}}
+            <TipRow
+              @username={{tip.fromUsername}}
+              @amount={{tip.amountRsc}}
+              @unit={{this.rscUnit}}
+              @formattedTime={{tip.formattedTime}}
+            />
+          {{/each}}
+        </div>
       </div>
     {{/if}}
   </template>

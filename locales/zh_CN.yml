@@ -4,3 +4,18 @@ zh_CN:
   reward_post_info:
     total: "总计"
     rsc_unit: "RSC"
+  reward_modal:
+    title: "打赏"
+    confirm: "确认"
+    cancel: "取消"
+    error:
+      WALLET_NOT_CREATED: "未创建 RSC 钱包"
+      USER_NOT_VERIFIED: "账号未认证"
+      RSC_RELOGIN_REQUIRED: "需重新登录"
+      INTERNAL_SERVER_ERROR: "服务端异常"
+      RSC_API_PATH_NOT_FOUND: "API 路径不存在"
+      RSC_TIMEOUT: "请求超时"
+      RSC_NETWORK_ERROR: "网络连接失败"
+      INSUFFICIENT_BALANCE: "余额不足"
+      SELF_TIP: "不能给自己打赏"
+      INVALID_AMOUNT: "金额无效"

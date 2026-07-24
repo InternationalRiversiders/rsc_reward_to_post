@@ -42,3 +42,41 @@
     flex-shrink: 0;
   }
 }
+
+// 打赏弹窗打开时，提权用户卡片至弹窗（1300）之上
+body.reward-modal-open div[data-identifier="usercard"] {
+  z-index: 1400 !important;
+}
+
+.reward-modal {
+  &__recipient {
+    margin: 0 0 12px;
+  }
+
+  &__input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  &__amount-input {
+    flex: 1;
+  }
+
+  &__unit {
+    flex-shrink: 0;
+  }
+
+  &__cancel {
+    margin-right: auto;
+  }
+
+  &__error {
+    color: var(--danger);
+    font-size: var(--font-down-1);
+    margin-top: 8px;
+  }
+}
+
+

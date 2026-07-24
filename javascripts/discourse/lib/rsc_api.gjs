@@ -3,61 +3,105 @@ import { ajax } from "discourse/lib/ajax";
 const API_PREFIX = "/app-rsc-api";
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 10_000;
+const TOKEN_BUFFER_MS = 5_000; // token 过期前 5 秒就视为过期，避免边界
 
 // =============================================================================
-// Cache
+// Token 管理
 // =============================================================================
 //
-// 结构: Map<topicId, CacheEntry>
-//
-// CacheEntry:
-//   {
-//     status:   "loading" | "loaded" | "error",
-//     promise:  Promise<void> | null,           // 进行中的请求，null 表示无事发生/已完成/已失败
-//     tipsByPostNumber: Map<number, Tip[]>,    // postNumber → Tip[]
-//     error:    Error | null,
-//     retryCount: number,
-//   }
-//
-// 生命周期:
-//   1. 组件调用 fetchPostTips(topicId, postNumber)
-//   2. 如果该 topic 已 loaded  → 直接从 tipsByPostNumber 取值返回
-//   3. 如果该 topic 正 loading → await 同一个 promise，不重复请求
-//   4. 如果该 topic 已 error   → 直接 throw（组件自行决定是否展示错误状态）
-//   5. 都没有                   → 创建 CacheEntry，发起请求
-//   6. 用户离开 topic / 刷新页面 → 模块重新初始化，Map 自然清空
-//
-// Tip（API 返回的单条打赏记录）:
-//   {
-//     id, topicId, postId, postNumber,
-//     fromDiscourseUserId, fromUsername,
-//     toDiscourseUserId,   toUsername,
-//     amountRsc, createdAt
-//   }
+// 懒加载 + 内存缓存 + 并发去重 + 401 自动刷新
+
+let tokenCache = null;   // { value: string, expiresAt: number } | null
+let tokenPromise = null; // Promise<string> | null
+
+async function getAuthToken() {
+  if (tokenCache && Date.now() < tokenCache.expiresAt - TOKEN_BUFFER_MS) {
+    return tokenCache.value;
+  }
+
+  if (!tokenPromise) {
+    tokenPromise = exchangeToken();
+  }
+
+  try {
+    return await tokenPromise;
+  } finally {
+    tokenPromise = null;
+  }
+}
+
+async function exchangeToken() {
+  const response = await ajax(`${API_PREFIX}/auth/session-exchange`, {
+    type: "POST",
+    contentType: "application/json",
+    data: JSON.stringify({}),
+    credentials: "include",
+  });
+
+  tokenCache = {
+    value: response.token,
+    expiresAt: new Date(response.expiresAt).getTime(),
+  };
+
+  return tokenCache.value;
+}
+
+function clearTokenCache() {
+  tokenCache = null;
+  tokenPromise = null;
+}
+
+// =============================================================================
+// 带认证的请求
+// =============================================================================
+
+/**
+ * 发起带 RSC JWT 认证的 API 请求。
+ * token 自动获取/缓存；401 时自动清缓存重试一次。
+ */
+export async function authRequest(url, opts = {}) {
+  const doRequest = () =>
+    getAuthToken().then((token) =>
+      ajax(url, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    );
+
+  try {
+    return await doRequest();
+  } catch (err) {
+    if (err.status === 401) {
+      clearTokenCache();
+      return await doRequest();
+    }
+    throw err;
+  }
+}
+
+// =============================================================================
+// Tips 缓存
+// =============================================================================
 
 /** @type {Map<number, {status: string, promise: Promise<void>|null, tipsByPostNumber: Map<number, object[]>|null, error: Error|null, retryCount: number}>} */
-const cache = new Map();
+const tipsCache = new Map();
 
 function ensureEntry(topicId) {
-  if (!cache.has(topicId)) {
-    cache.set(topicId, {
-      status: "loading", // 初始就是 loading，因为创建即准备请求
+  if (!tipsCache.has(topicId)) {
+    tipsCache.set(topicId, {
+      status: "loading",
       promise: null,
       tipsByPostNumber: null,
       error: null,
       retryCount: 0,
     });
   }
-  return cache.get(topicId);
+  return tipsCache.get(topicId);
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * 给 Promise 加超时——不真正 abort 底层请求，但从调用方视角 10s 后 reject
- */
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -67,9 +111,6 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-/**
- * 将 API 返回的 tips 数组转换为 postNumber → Tip[] 的 Map
- */
 function indexTips(tips) {
   const map = new Map();
   for (const tip of tips) {
@@ -81,10 +122,6 @@ function indexTips(tips) {
   }
   return map;
 }
-
-// =============================================================================
-// Internal fetch — 包含重试逻辑
-// =============================================================================
 
 async function fetchTipsForTopic(topicId) {
   const entry = ensureEntry(topicId);
@@ -104,7 +141,6 @@ async function fetchTipsForTopic(topicId) {
     } catch (err) {
       entry.retryCount = attempt + 1;
 
-      // 最后一次重试也失败 → 标记 error
       if (entry.retryCount >= MAX_RETRIES) {
         entry.status = "error";
         entry.error = err;
@@ -112,7 +148,6 @@ async function fetchTipsForTopic(topicId) {
         throw err;
       }
 
-      // 指数退避：1s → 2s
       await new Promise((r) => setTimeout(r, 1000 * entry.retryCount));
     }
   }
@@ -122,55 +157,76 @@ async function fetchTipsForTopic(topicId) {
 // Public API
 // =============================================================================
 
-/**
- * 获取某个帖子收到的打赏列表。
- *
- * @param {number} topicId  - 帖子所属 topic 的 ID
- * @param {number} postNumber - 帖子的 postNumber（同 topic 内唯一）
- * @returns {Promise<object[]>} 该帖子收到的所有 Tip 数组；帖子没有打赏时返回 []
- */
+/** 获取某个帖子的打赏列表（无需认证） */
 export async function fetchPostTips(topicId, postNumber) {
   const entry = ensureEntry(topicId);
 
-  // 已加载 → 直接查
   if (entry.status === "loaded") {
     return entry.tipsByPostNumber?.get(postNumber) ?? [];
   }
 
-  // 已失败 → 不重试，直接抛
   if (entry.status === "error") {
     throw entry.error;
   }
 
-  // status === "loading"
-  // 如果没有正在进行的请求，发起一个
   if (!entry.promise) {
     entry.promise = fetchTipsForTopic(topicId);
   }
 
-  // 同一 topic 的所有并发调用都 await 同一个 promise
   await entry.promise;
 
   if (entry.status === "loaded") {
     return entry.tipsByPostNumber?.get(postNumber) ?? [];
   }
 
-  // promise 完成后仍然是 error（理论上 fetchTipsForTopic 会 throw，不太会走到这里）
   throw entry.error ?? new Error("Unknown fetch error");
 }
 
-/**
- * 清空所有缓存——在用户离开 topic 时调用，确保再次进入时重新拉取。
- */
+/** 清空 tips 缓存 */
 export function clearRewardsCache() {
-  cache.clear();
+  tipsCache.clear();
 }
 
 /**
- * 为帖子打赏
- * TODO: 后续实现
+ * 为帖子打赏（需要认证）。
+ *
+ * @param {object} params
+ * @param {number} params.toDiscourseUserId
+ * @param {string} params.toUsername
+ * @param {string} params.amount
+ * @param {number} params.topicId
+ * @param {number} params.postId
+ * @param {number} params.postNumber
+ * @returns {Promise<object>} 新创建的 Tip
  */
-export async function rewardPost(postId) {
-  // const response = await ajax(`${API_PREFIX}/reward/${postId}`, { type: "POST" });
-  // return response;
+export async function rewardPost({
+  toDiscourseUserId,
+  toUsername,
+  amount,
+  topicId,
+  postId,
+  postNumber,
+}) {
+  const result = await authRequest(`${API_PREFIX}/wallet/post-tips`, {
+    type: "POST",
+    contentType: "application/json",
+    data: JSON.stringify({
+      toDiscourseUserId,
+      toUsername,
+      amount,
+      topicId,
+      postId,
+      postNumber,
+    }),
+  });
+
+  // 清除该 topic 的缓存，下次 fetchPostTips 会重新拉取
+  tipsCache.delete(topicId);
+
+  // 通知 RewardPostInfo 组件刷新
+  document.dispatchEvent(
+    new CustomEvent("reward:updated", { detail: { topicId } })
+  );
+
+  return result.tip;
 }

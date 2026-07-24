@@ -4,3 +4,18 @@ en:
   reward_post_info:
     total: "Total"
     rsc_unit: "RSC"
+  reward_modal:
+    title: "Reward"
+    confirm: "Confirm"
+    cancel: "Cancel"
+    error:
+      WALLET_NOT_CREATED: "RSC wallet not created"
+      USER_NOT_VERIFIED: "Account not verified"
+      RSC_RELOGIN_REQUIRED: "Please re-login"
+      INTERNAL_SERVER_ERROR: "Server error"
+      RSC_API_PATH_NOT_FOUND: "API path not found"
+      RSC_TIMEOUT: "Request timed out"
+      RSC_NETWORK_ERROR: "Network error"
+      INSUFFICIENT_BALANCE: "Insufficient balance"
+      SELF_TIP: "Cannot reward yourself"
+      INVALID_AMOUNT: "Invalid amount"

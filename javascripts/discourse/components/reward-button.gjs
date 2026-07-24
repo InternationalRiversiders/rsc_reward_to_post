@@ -1,11 +1,26 @@
 import Component from "@glimmer/component";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import DButton from "discourse/ui-kit/d-button";
+import { i18n } from "discourse-i18n";
+import { themePrefix } from "virtual:theme";
+import { rewardPost } from "../lib/rsc_api";
+import RewardModal from "./reward-modal";
 
 export default class RewardButton extends Component {
+  @service modal;
+
   @action
   reward() {
-    // 空函数，后续实现打赏逻辑
+    this.modal.show(RewardModal, {
+      model: {
+        post: this.args.post,
+        title: i18n(themePrefix("reward_modal.title")),
+        confirmLabel: i18n(themePrefix("reward_modal.confirm")),
+        cancelLabel: i18n(themePrefix("reward_modal.cancel")),
+        rewardPost: (params) => rewardPost(params),
+      },
+    });
   }
 
   <template>

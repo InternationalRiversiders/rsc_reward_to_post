@@ -48,7 +48,11 @@ export default class RewardPostInfo extends Component {
   }
 
   get totalRsc() {
-    return this.tips.reduce((sum, t) => sum + Number(t.amountRsc || 0), 0);
+    const totalCents = this.tips.reduce(
+      (sum, t) => sum + Math.round(Number(t.amountRsc || 0) * 100),
+      0
+    );
+    return (totalCents / 100).toFixed(2).replace(/\.?0+$/, "");
   }
 
   get totalLabel() {
@@ -68,15 +72,32 @@ export default class RewardPostInfo extends Component {
 
   constructor() {
     super(...arguments);
-    if (this.isTopicPage) {
-      this.loadTips();
+    if (!this.isTopicPage) {
+      return;
+    }
+
+    const post = this.args.post;
+    this._topicId = post.topic_id;
+    this.loadTips();
+
+    this._onRewardUpdated = (e) => {
+      if (e.detail.topicId === this._topicId) {
+        this.loadTips();
+      }
+    };
+    document.addEventListener("reward:updated", this._onRewardUpdated);
+  }
+
+  willDestroy() {
+    super.willDestroy();
+    if (this._onRewardUpdated) {
+      document.removeEventListener("reward:updated", this._onRewardUpdated);
     }
   }
 
   async loadTips() {
     try {
-      const post = this.args.post;
-      this.tips = await fetchPostTips(post.topic_id, post.post_number);
+      this.tips = await fetchPostTips(this._topicId, this.args.post.post_number);
     } catch {
       this.tips = [];
     }

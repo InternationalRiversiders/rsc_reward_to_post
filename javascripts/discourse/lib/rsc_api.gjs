@@ -31,19 +31,31 @@ async function getAuthToken() {
 }
 
 async function exchangeToken() {
-  const response = await ajax(`${API_PREFIX}/auth/session-exchange`, {
-    type: "POST",
-    contentType: "application/json",
-    data: JSON.stringify({}),
-    credentials: "include",
-  });
+  const doExchange = () =>
+    withTimeout(
+      ajax(`${API_PREFIX}/auth/session-exchange`, {
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({}),
+        credentials: "include",
+      }),
+      TIMEOUT_MS
+    );
 
-  tokenCache = {
-    value: response.token,
-    expiresAt: new Date(response.expiresAt).getTime(),
-  };
-
-  return tokenCache.value;
+  let lastErr;
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    try {
+      const response = await doExchange();
+      tokenCache = {
+        value: response.token,
+        expiresAt: new Date(response.expiresAt).getTime(),
+      };
+      return tokenCache.value;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
 }
 
 function clearTokenCache() {
@@ -62,13 +74,16 @@ function clearTokenCache() {
 export async function authRequest(url, opts = {}) {
   const doRequest = () =>
     getAuthToken().then((token) =>
-      ajax(url, {
-        ...opts,
-        headers: {
-          ...opts.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      withTimeout(
+        ajax(url, {
+          ...opts,
+          headers: {
+            ...opts.headers,
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        TIMEOUT_MS
+      )
     );
 
   try {

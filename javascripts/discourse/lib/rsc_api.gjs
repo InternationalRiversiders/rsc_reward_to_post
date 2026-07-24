@@ -121,7 +121,11 @@ function withTimeout(promise, ms) {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms)
+      setTimeout(() => {
+        const err = new Error(`Request timed out after ${ms}ms`);
+        err.rscErrorCode = "RSC_TIMEOUT";
+        reject(err);
+      }, ms)
     ),
   ]);
 }

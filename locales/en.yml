@@ -16,6 +16,3 @@ en:
       RSC_API_PATH_NOT_FOUND: "API path not found"
       RSC_TIMEOUT: "Request timed out"
       RSC_NETWORK_ERROR: "Network error"
-      INSUFFICIENT_BALANCE: "Insufficient balance"
-      SELF_TIP: "Cannot reward yourself"
-      INVALID_AMOUNT: "Invalid amount"

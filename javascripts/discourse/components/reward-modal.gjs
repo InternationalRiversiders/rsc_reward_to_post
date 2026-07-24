@@ -31,7 +31,9 @@ export default class RewardModal extends Component {
       return null;
     }
     const msg = i18n(themePrefix(`reward_modal.error.${this.error}`));
-    // 有对应翻译就用翻译，没有则原样显示错误码
+    // 刻意设计：有对应翻译就用翻译，没有则原样显示错误码字符串。
+    // 这样后端新增错误码时，前端即使未及时更新 locale 文件，用户也能看到有意义的
+    // 错误标识（而非模糊的"服务端异常"），便于用户反馈问题时提供准确信息。
     return msg ? msg : this.error;
   }
 
@@ -77,7 +79,7 @@ export default class RewardModal extends Component {
       });
       this.args.closeModal();
     } catch (err) {
-      this.error = err.jqXHR?.responseJSON?.error || "INTERNAL_SERVER_ERROR";
+      this.error = err.rscErrorCode || err.jqXHR?.responseJSON?.error || "INTERNAL_SERVER_ERROR";
     } finally {
       this.loading = false;
     }

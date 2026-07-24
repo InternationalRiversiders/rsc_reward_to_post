@@ -99,6 +99,8 @@ export default class RewardPostInfo extends Component {
     }
   }
 
+  // 刻意设计：加载打赏列表失败时静默降级为空数组，不打断用户的正常浏览体验。
+  // 打赏展示属于辅助信息，加载失败不应阻塞页面其他功能。
   async loadTips() {
     try {
       this.tips = await fetchPostTips(this._topicId, this.args.post.post_number);

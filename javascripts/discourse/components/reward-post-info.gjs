@@ -47,7 +47,7 @@ export default class RewardPostInfo extends Component {
   }
 
   get showTotal() {
-    return this.tips.reduce((sum, tip) => sum + (tip.tipCount || 1), 0) >= 3;
+    return this.tips.length >= 3;
   }
 
   get totalRsc() {

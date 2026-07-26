@@ -201,9 +201,13 @@ export async function fetchPostTips(topicId, postNumber) {
   throw entry.error ?? new Error("Unknown fetch error");
 }
 
-/** 清空 tips 缓存 */
-export function clearRewardsCache() {
-  tipsCache.clear();
+/** 清空 tips 缓存（不传 topicId 则清空全部） */
+export function clearRewardsCache(topicId) {
+  if (topicId !== undefined) {
+    tipsCache.delete(topicId);
+  } else {
+    tipsCache.clear();
+  }
 }
 
 /**

@@ -4,7 +4,7 @@ import { tracked } from "@glimmer/tracking";
 import { i18n } from "discourse-i18n";
 import { themePrefix } from "virtual:theme";
 import moment from "moment";
-import { fetchPostTips } from "../lib/rsc_api";
+import { fetchPostTips, clearRewardsCache } from "../lib/rsc_api";
 
 const RewardIcon = <template>
   <svg
@@ -100,6 +100,10 @@ export default class RewardPostInfo extends Component {
     super.willDestroy();
     if (this._onRewardUpdated) {
       document.removeEventListener("reward:updated", this._onRewardUpdated);
+    }
+    // 页面导航离开时清除缓存，确保返回时能拉取到最新的打赏记录
+    if (this._topicId) {
+      clearRewardsCache(this._topicId);
     }
   }
 

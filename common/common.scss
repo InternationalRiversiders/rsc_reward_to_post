@@ -27,7 +27,7 @@
     flex-shrink: 0;
   }
 
-  &__user {
+  a#{&}__user {
     font-weight: 500;
     color: inherit;
     text-decoration: none;
